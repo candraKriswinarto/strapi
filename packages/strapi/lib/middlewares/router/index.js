@@ -50,26 +50,24 @@ module.exports = strapi => {
           });
 
           // Exclude routes with prefix.
-          const excludedRoutes = _.omitBy(plugin.config.routes, o => !_.has(o.config, 'prefix'));
-
-          _.forEach(_.omit(plugin.config.routes, _.keys(excludedRoutes)), value => {
-            composeEndpoint(value, { plugin: pluginName, router });
-          });
-
-          // /!\ Could override main router's routes.
-          if (!_.isEmpty(excludedRoutes)) {
-            _.forEach(excludedRoutes, value => {
-              composeEndpoint(value, {
-                plugin: pluginName,
-                router: strapi.router,
-              });
+          (plugin.config.routes || [])
+            .filter(route => !_.has(route.config, 'prefix'))
+            .forEach(value => {
+              composeEndpoint(value, { plugin: pluginName, router });
             });
-          }
+
+          // if you set a prefix key in the route it will ignore the plugin prefix
+          (plugin.config.routes || [])
+            .filter(route => _.has(route.config, 'prefix'))
+            .forEach(value => {
+              composeEndpoint(value, { plugin: pluginName, router: strapi.router });
+            });
 
           // Mount plugin router
           strapi.app.use(router.routes()).use(router.allowedMethods());
         });
       }
+      console.log(strapi.router.stack.map(i => i.path));
     },
   };
 };
